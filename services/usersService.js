@@ -17,7 +17,7 @@ function getUserById(id) {
 }
 
 function updateUser(id, name) {
-  const userToUpdate = users.find(item => item.id === id);
+  const userToUpdate = users.find((item) => item.id === id);
   if (userToUpdate) {
     userToUpdate.name = name.trim();
   }
@@ -30,8 +30,13 @@ function deleteUser(id) {
   if (index < 0) {
     return false;
   }
-  users.splice(index,1)
+  users.splice(index, 1);
   return true;
+}
+
+async function getUserByIdAsync(id) {
+  const user = users.find((item) => item.id === id);
+  return user;
 }
 
 module.exports = {
@@ -40,4 +45,5 @@ module.exports = {
   getUserById,
   updateUser,
   deleteUser,
+  getUserByIdAsync,
 };

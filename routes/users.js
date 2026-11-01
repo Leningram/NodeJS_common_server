@@ -1,6 +1,12 @@
 const express = require('express');
-const { getUsers, createUser, getUserById, updateUser, deleteUser } = require('../controllers/usersController');
-const users = require('../data/users');
+const {
+  getUsers,
+  createUser,
+  getUserById,
+  updateUser,
+  deleteUser,
+  getUserByIdAsync,
+} = require('../controllers/usersController');
 
 const router = express.Router();
 
@@ -13,5 +19,7 @@ router.get('/:id', getUserById);
 router.patch('/:id', updateUser);
 
 router.delete('/:id', deleteUser);
+
+router.get('/async/:id', getUserByIdAsync);
 
 module.exports = router;

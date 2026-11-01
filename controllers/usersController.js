@@ -1,3 +1,4 @@
+const HttpError = require('../errors/HttpError');
 const usersService = require('../services/usersService');
 
 function getUsers(_req, res) {
@@ -5,64 +6,69 @@ function getUsers(_req, res) {
   res.json(users);
 }
 
-function getUserById(req, res) {
+function getUserById(req, res, next) {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ error: 'Invalid user id' });
+    return next(new HttpError(400, 'Invalid user id'));
   }
   const user = usersService.getUserById(id);
   if (!user) {
-    return res.status(404).json({
-      error: 'User not found!',
-    });
+    return next(new HttpError(404, 'User not found!'));
   }
   res.json(user);
 }
 
-function createUser(req, res) {
+function createUser(req, res, next) {
   const { name } = req.body;
 
   if (typeof name !== 'string' || name.trim() === '') {
-    return res.status(400).json({
-      error: 'Name is required',
-    });
+    return next(new HttpError(400, 'Name is required'));
   }
   const user = usersService.createUser(name);
   res.status(201).json(user);
 }
 
-function updateUser(req, res) {
+function updateUser(req, res, next) {
   const { name } = req.body;
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ error: 'Invalid user id' });
+    return next(new HttpError(400, 'Invalid user id'));
   }
   if (typeof name !== 'string' || name.trim() === '') {
-    return res.status(400).json({
-      error: 'Name is required',
-    });
+    return next(new HttpError(400, 'Name is required'));
   }
   const user = usersService.updateUser(id, name);
   if (!user) {
-    return res.status(404).json({ error: 'User not found!' });
+    return next(new HttpError(404, 'User not found!'));
   }
   res.json(user);
 }
 
-function deleteUser(req, res) {
+function deleteUser(req, res, next) {
   const id = Number(req.params.id);
+
   if (!Number.isInteger(id) || id <= 0) {
-    res.status(400).json({ error: 'Invalid user id' });
-    return;
+    return next(new HttpError(400, 'Invalid user id'));
   }
+
   const status = usersService.deleteUser(id);
-  if (status) {
-    res.status(204).end();
-  } else {
-    res.status(404).json({
-      error: 'User not found!',
-    });
+
+  if (!status) {
+    return next(new HttpError(404, 'User not found!'));
   }
+  res.status(204).end();
+}
+
+async function getUserByIdAsync(req, res) {
+  const id = Number(req.params.id);
+
+  const user = await usersService.getUserByIdAsync(id);
+
+  if (!user) {
+    throw new HttpError(404, 'User not found!');
+  }
+
+  res.json(user);
 }
 
 module.exports = {
@@ -71,4 +77,5 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
+  getUserByIdAsync,
 };
