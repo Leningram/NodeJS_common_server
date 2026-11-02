@@ -1,5 +1,12 @@
-const app = require('./app');
+const createApp = require('./app');
+const connectDB = require('./database/database');
 
-app.listen(3000, () => {
-  console.log('Server is running');
-});
+async function startServer() {
+  const db = await connectDB();
+  const app = createApp(db);
+  app.listen(3000, () => {
+    console.log('Server is running');
+  });
+}
+
+startServer();

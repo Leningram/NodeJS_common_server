@@ -1,5 +1,6 @@
 const request = require('supertest');
-const app = require('../app');
+const createApp = require('../app');
+const app = createApp(null);
 
 describe('GET /private', () => {
   test('should return 401 without apikey', async () => {

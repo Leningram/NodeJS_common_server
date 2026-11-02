@@ -1,25 +1,24 @@
 const express = require('express');
-const {
-  getUsers,
-  createUser,
-  getUserById,
-  updateUser,
-  deleteUser,
-  getUserByIdAsync,
-} = require('../controllers/usersController');
+const createUsersService = require('../services/usersService');
+const createUsersController = require('../controllers/usersController');
 
-const router = express.Router();
 
-router.get('/', getUsers);
+function createUserRouter(db) {
+  const router = express.Router();
+  const usersService = createUsersService(db);
+  const usersController = createUsersController(usersService);
 
-router.post('/', createUser);
+  router.get('/', usersController.getUsers);
 
-router.get('/:id', getUserById);
+  router.post('/', usersController.createUser);
 
-router.patch('/:id', updateUser);
+  router.get('/:id', usersController.getUserById);
 
-router.delete('/:id', deleteUser);
+  router.patch('/:id', usersController.updateUser);
 
-router.get('/async/:id', getUserByIdAsync);
+  router.delete('/:id', usersController.deleteUser);
 
-module.exports = router;
+  return router;
+}
+
+module.exports = createUserRouter;
