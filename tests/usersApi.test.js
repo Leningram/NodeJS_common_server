@@ -1,20 +1,36 @@
 const request = require('supertest');
 const createApp = require('../app');
-const app = createApp(null);
-const users = require('../data/users');
+const connectDB = require('../database/database');
+
+let db, app;
+
+beforeAll(async () => {
+  db = await connectDB(':memory:');
+  app = createApp(db);
+});
+
+afterAll(async () => {
+  await db.close();
+});
+
+let alexID, johnID;
+
+beforeEach(async () => {
+  await db.run('DELETE FROM users');
+  const alex = await db.run('INSERT INTO users (name) VALUES(?)', ['Alex']);
+  const john = await db.run('INSERT INTO users (name) VALUES(?)', ['John']);
+  alexID = alex.lastID;
+  johnID = john.lastID;
+});
 
 describe('GET /users', () => {
-  beforeEach(() => {
-    users.splice(0, users.length, { id: 1, name: 'Alex' }, { id: 2, name: 'John' });
-  });
-
   test('should return all users', async () => {
     const response = await request(app).get('/users');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([
-      { id: 1, name: 'Alex' },
-      { id: 2, name: 'John' },
+      { id: alexID, name: 'Alex' },
+      { id: johnID, name: 'John' },
     ]);
   });
 
@@ -23,11 +39,14 @@ describe('GET /users', () => {
       name: 'Mike',
     });
 
+    const usersResponse = await request(app).get('/users');
+    const mike = usersResponse.body.find((item) => item.name === 'Mike');
+
     expect(response.status).toBe(201);
-    expect(response.body).toEqual({ id: 3, name: 'Mike' });
-    expect(users).toHaveLength(3);
-    expect(users[2]).toEqual({
-      id: 3,
+    expect(response.body).toEqual({ id: mike?.id, name: 'Mike' });
+    expect(usersResponse.body).toHaveLength(3);
+    expect(mike).toEqual({
+      id: mike?.id,
       name: 'Mike',
     });
   });
@@ -45,25 +64,35 @@ describe('GET /users', () => {
 
 describe('PATCH /users/:id', () => {
   test('should update user name', async () => {
-    const response = await request(app).patch('/users/1').send({
-      name: 'Mikey',
+    const testName = 'Mikey';
+    const usersBeforePatch = await request(app).get('/users');
+    const mike = usersBeforePatch.body.find((item) => item.name === 'John');
+
+    const response = await request(app).patch(`/users/${mike.id}`).send({
+      name: testName,
     });
+    const usersResponse = await request(app).get('/users');
+    const users = usersResponse.body;
+    const mikey = users.find((user) => user.name === testName);
+
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ id: 1, name: 'Mikey' });
-    expect(users.find((item) => item.id === 1)).toEqual({
-      id: 1,
-      name: 'Mikey',
+    expect(response.body).toEqual({ id: mikey.id, name: testName });
+    expect(users.find((item) => item.id === mikey.id)).toEqual({
+      id: mike.id,
+      name: testName,
     });
   });
 
   test('should return 404 if user does not exist', async () => {
-    const response = await request(app).patch('/users/4').send({ name: 'John' });
+    const response = await request(app).patch('/users/9999').send({ name: 'John' });
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: 'User not found!' });
   });
 
   test('should return 400 if name is incorrect', async () => {
-    const response = await request(app).patch('/users/1').send({ name: '' });
+    const usersResponse = await request(app).get('/users');
+    const alex = usersResponse.body.find((item) => item.name === 'Alex');
+    const response = await request(app).patch(`/users/${alex.id}`).send({ name: '' });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'Name is required' });
@@ -72,16 +101,19 @@ describe('PATCH /users/:id', () => {
 
 describe('DELETE /users/:id', () => {
   test('should delete user', async () => {
-    const response = await request(app).delete('/users/1');
+    const usersResponse = await request(app).get('/users');
+    const alex = usersResponse.body.find((item) => item.name === 'Alex');
+    alexID = alex.id;
+    const response = await request(app).delete(`/users/${alexID}`);
 
     expect(response.status).toBe(204);
     expect(response.body).toEqual({});
   });
 
   test('should not return deleted user', async () => {
-    await request(app).delete('/users/1');
+    await request(app).delete(`/users/${alexID}`);
 
-    const response = await request(app).get('/users/1');
+    const response = await request(app).get(`/users/${alexID}`);
 
     expect(response.status).toBe(404);
   });
