@@ -44,20 +44,21 @@ function createUsersController(usersService) {
     res.json(user);
   }
 
-  function deleteUser(req, res, next) {
+  async function deleteUser(req, res, next) {
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id) || id <= 0) {
       return next(new HttpError(400, 'Invalid user id'));
     }
 
-    const status = usersService.deleteUser(id);
+    const status = await usersService.deleteUser(id);
 
     if (!status) {
       return next(new HttpError(404, 'User not found!'));
     }
     res.status(204).end();
   }
+
   return {
     getUsers,
     getUserById,
