@@ -15,7 +15,7 @@ function createUsersService(db) {
   async function updateUser(id, name) {
     const result = await db.run('UPDATE users SET name = ? WHERE id = (?)', [name.trim(), id]);
     if (result.changes === 0) {
-      return null;
+      return undefined;
     }
 
     return getUserById(id);

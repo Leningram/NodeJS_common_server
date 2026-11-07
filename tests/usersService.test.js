@@ -1,13 +1,26 @@
-const usersService = require('../services/usersService');
-const users = require('../data/users');
+const connectDB = require('../database/database');
+const createUsersService = require('../services/usersService');
 
 describe('usersService', () => {
-  beforeEach(() => {
-    users.splice(0, users.length, { id: 1, name: 'Alex' }, { id: 2, name: 'John' });
+  let db, usersService;
+
+  beforeAll(async () => {
+    db = await connectDB(':memory:');
+    usersService = createUsersService(db);
   });
 
-  test('Should return all users', () => {
-    const result = usersService.getAllUsers();
+  beforeEach(async () => {
+    await db.run('DELETE FROM users');
+    await db.run('INSERT INTO users (name) VALUES(?)', ['Alex']);
+    await db.run('INSERT INTO users (name) VALUES(?)', ['John']);
+  });
+
+  afterAll(async () => {
+    await db.close();
+  });
+
+  test('Should return all users', async () => {
+    const result = await usersService.getAllUsers();
 
     expect(result).toEqual([
       { id: 1, name: 'Alex' },
@@ -15,69 +28,78 @@ describe('usersService', () => {
     ]);
   });
 
-  test('Create new user', () => {
-    const result = usersService.createUser('Mike');
-
+  test('Create new user', async () => {
+    const result = await usersService.createUser('Mike');
+    const id = result.id;
     expect(result).toEqual({
       name: 'Mike',
-      id: 3,
+      id,
     });
 
-    expect(users).toHaveLength(3);
-    expect(users[2]).toEqual({
+    expect(await usersService.getAllUsers()).toHaveLength(3);
+    expect(await usersService.getUserById(id)).toEqual({
       name: 'Mike',
-      id: 3,
+      id,
     });
   });
 
-  test('should trim user name', () => {
-    const result = usersService.createUser('  Mike  ');
+  test('should trim user name', async () => {
+    const result = await usersService.createUser('  Mike  ');
 
     expect(result.name).toBe('Mike');
   });
 
-  test('should retur user by id', () => {
-    const result = usersService.getUserById(1);
+  test('should return user by id', async () => {
+    const users = await usersService.getAllUsers();
+    const alex = users.find((user) => user.name === 'Alex');
 
-    expect(result).toEqual({ id: 1, name: 'Alex' });
+    const result = await usersService.getUserById(alex.id);
+
+    expect(result).toEqual(alex);
   });
 
-  test('should return undefined if user not found', () => {
-    const result = usersService.getUserById(9999);
+  test('should return null if user not found', async () => {
+    const result = await usersService.getUserById(9999);
 
     expect(result).toBeUndefined();
   });
 
-  test('should update user name', () => {
-    const result = usersService.updateUser(1, 'Mike');
+  test('should update user name', async () => {
+    const users = await usersService.getAllUsers();
+    const alex = users.find((user) => user.name === 'Alex');
+
+    const result = await usersService.updateUser(alex.id, 'Mike');
 
     expect(result).toEqual({
-      id: 1,
+      id: alex.id,
       name: 'Mike',
     });
 
-    expect(users[0]).toEqual({
-      id: 1,
+    expect(await usersService.getUserById(alex.id)).toEqual({
+      id: alex.id,
       name: 'Mike',
     });
   });
-  
-  test('should return undefined if user not found', () => {
-    const result = usersService.updateUser(999, 'Mike');
+
+  test('should return undefined if user not found', async () => {
+    const result = await usersService.updateUser(999, 'Mike');
 
     expect(result).toBeUndefined();
-  })
+  });
 
-  test('should delete user', () => {
-    const result = usersService.deleteUser(1);
+  test('should delete user', async () => {
+    const users = await usersService.getAllUsers();
+    const alex = users.find((user) => user.name === 'Alex');
 
+    const result = await usersService.deleteUser(alex.id);
     expect(result).toBe(true);
-    expect(users).toHaveLength(1);
-    expect(users.find(item => item.id === 1)).toBeUndefined()
-  })
+    const updatedUsers = await usersService.getAllUsers();
+    expect(updatedUsers).toHaveLength(1);
+    expect(updatedUsers.find((item) => item.id === 1)).toBeUndefined();
+  });
 
-  test('should return false if user not found', () => {
-    const result = usersService.deleteUser(999);
-    expect(result).toBe(false)
-  })
+  test('should return false if user not found', async () => {
+    const result = await usersService.deleteUser(999);
+    expect(result).toBe(false);
+  });
 });
