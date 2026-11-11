@@ -1,17 +1,19 @@
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
+const path = require('path');
+
+const projectRoot = path.resolve(__dirname, '..');
 
 async function connectDB(database) {
   const db = await open({
-    filename: database || './database.sqlite',
+    filename:
+      database === ':memory:'
+        ? database
+        : database
+          ? path.resolve(projectRoot, database)
+          : path.resolve(projectRoot, 'database.sqlite'),
     driver: sqlite3.Database,
   });
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL
-    )`);
 
   return db;
 }
