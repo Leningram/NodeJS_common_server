@@ -8,7 +8,7 @@
 
 # План обучения
 
-Формат обучения: Node.js → Express → PostgreSQL → Auth → Redis → Docker/Linux → production → Go → архитектура
+Формат обучения: Node.js → Express → NestJS → PostgreSQL → Auth → Redis → Docker/Linux → production → Go → архитектура
 
 Этапы:
 1. [x] Node.js
